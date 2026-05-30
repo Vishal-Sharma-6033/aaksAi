@@ -1,5 +1,5 @@
 {
-  "name": "angel-ai-assistant",
+  "name": "aaksai",
   "version": "1.0.0",
   "description": "AI-powered Meeting Assistant that provides real-time answers during meetings",
   "main": "main.js",
@@ -13,7 +13,7 @@
     "build-all": "sh ./build-all.sh",
     "postinstall": "electron-builder install-app-deps"
   },
-  "author": "Lazy Job Seeker",
+  "author": "aaksAi",
   "license": "ISC",
   "dependencies": {
     "@google-cloud/speech": "^7.0.1",
@@ -28,8 +28,8 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.lazyjobseeker.angel",
-    "productName": "Angel AI Meeting Assistant",
+    "appId": "com.aaksai.app",
+    "productName": "aaksAi",
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "assets/icons/icon.icns",
@@ -49,16 +49,6 @@
         "zip"
       ]
     },
-    "files": [
-      "**/*",
-      "!lazy-job-seeker-4b29b-eb0b308d0ba7.json"
-    ],
-    "extraResources": [
-      {
-        "from": "lazy-job-seeker-4b29b-eb0b308d0ba7.json",
-        "to": "lazy-job-seeker-4b29b-eb0b308d0ba7.json"
-      }
-    ],
     "asarUnpack": [
       "node_modules/@google-cloud/text-to-speech/**/*",
       "node_modules/@google-cloud/speech/**/*",
