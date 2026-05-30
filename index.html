@@ -257,7 +257,95 @@
         
         .message {
             display: flex;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.5rem;}
+
+        /* Chat styling */
+        .chat-messages {
+            background: linear-gradient(180deg, #f7fafc 0%, #ffffff 100%);
+            padding: 1.25rem;
+            border-bottom: 1px solid #eef2f7;
+        }
+
+        .message {
+            display: flex;
+            max-width: 78%;
+            margin-bottom: 0.75rem;
+            align-items: flex-end;
+        }
+
+        .message-ai {
+            justify-content: flex-start;
+        }
+
+        .message-user {
+            margin-left: auto;
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            background: #ffffff;
+            color: #0f172a;
+            padding: 0.9rem 1rem;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(15,23,42,0.06);
+            font-size: 0.95rem;
+            line-height: 1.35;
+        }
+
+        .message-user .message-content {
+            background: linear-gradient(90deg,#6d28d9,#8b5cf6);
+            color: #fff;
+            border-radius: 12px 12px 6px 12px;
+        }
+
+        .message-ai .message-content {
+            border-radius: 12px 12px 12px 6px;
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            align-items: flex-end;
+            border-top: 1px solid #eef2f7;
+            background: #ffffff;
+        }
+
+        .chat-input-area textarea {
+            flex: 1 1 auto;
+            resize: none;
+            min-height: 42px;
+            max-height: 160px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #e6edf3;
+            background: #fbfdff;
+            font-size: 0.95rem;
+            line-height: 1.25;
+            outline: none;
+        }
+
+        .chat-input-area textarea:focus {
+            box-shadow: 0 6px 18px rgba(99,102,241,0.12);
+            border-color: #6366f1;
+        }
+
+        .send-button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: 0 6px 18px rgba(99,102,241,0.12);
+        }
+
+        .send-button[disabled] {
+            opacity: 0.5;
+            cursor: default;
+            box-shadow: none;
+        }
             animation: fadeIn 0.3s ease;
         }
         
@@ -670,21 +758,19 @@
             // Create message element
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isUser ? 'message-user' : 'message-ai'}`;
-            
+
             const messageContent = document.createElement('div');
             messageContent.className = 'message-content';
             messageContent.textContent = text;
-            
+
             messageDiv.appendChild(messageContent);
-            
-            // Add to chat
+
+            // Append and smoothly scroll
             chatMessages.appendChild(messageDiv);
-            
-            // Scroll to bottom
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-            
+            chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
+
             // Store in messages array
-            messages.push({ text, isUser });
+            messages.push({ text, isUser, ts: Date.now() });
         }
         
         // Function to update live transcript
@@ -989,9 +1075,14 @@
             const text = chatInput.value.trim();
             if (!text) return;
 
+            // Disable input while sending
+            sendButton.disabled = true;
+            chatInput.disabled = true;
+
             // Add user message to UI
             addMessage(text, true);
             chatInput.value = '';
+            chatInput.style.height = '';
 
             // Show a temporary loading message for the assistant
             const loadingId = `loading-${Date.now()}`;
@@ -1000,7 +1091,7 @@
             loadingDiv.id = loadingId;
             loadingDiv.innerHTML = showLoadingAnimation();
             chatMessages.appendChild(loadingDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
 
             try {
                 // Invoke main process to get chat response
@@ -1019,18 +1110,34 @@
                 const el = document.getElementById(loadingId);
                 if (el) el.remove();
                 addMessage(`Error: ${err.message || err}`, false);
+            } finally {
+                sendButton.disabled = false;
+                chatInput.disabled = false;
+                chatInput.focus();
             }
         }
 
         // Send on button click
         sendButton.addEventListener('click', sendChatMessage);
 
-        // Send on Enter (without Shift)
+        // Auto-resize textarea and send on Enter (without Shift)
+        function autosizeTextarea(el) {
+            el.style.height = 'auto';
+            const h = Math.min(el.scrollHeight, 160);
+            el.style.height = h + 'px';
+        }
+
+        chatInput.addEventListener('input', (e) => autosizeTextarea(chatInput));
         chatInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendChatMessage();
             }
+        });
+
+        // Focus the chat input when app content is shown
+        startAppButton.addEventListener('click', () => {
+            setTimeout(() => chatInput.focus(), 250);
         });
     </script>
 </body>
