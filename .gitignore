@@ -13,8 +13,6 @@ Desktop.ini
 # Local environment files
 .env
 
-# Google service account files
-aaksai-c62237f8e4eb.json
 
 # Distribution and build files
 dist/
