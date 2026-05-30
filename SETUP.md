@@ -2,7 +2,7 @@
 
 ## Environment Variables
 
-The Angel AI Meeting Assistant requires the following environment variables to be set:
+The aaksAi AI Meeting Assistant requires the following environment variables to be set:
 
 ### OpenAI API Key
 
@@ -25,7 +25,15 @@ The application uses Google Cloud Speech-to-Text for transcription. You need to:
 1. Create a Google Cloud project
 2. Enable the Speech-to-Text API
 3. Create a service account and download the JSON key
-4. Save the JSON key file as `lazy-job-seeker-4b29b-eb0b308d0ba7.json` in the project root
+4. Save the JSON key file somewhere outside version control
+5. Point `GOOGLE_APPLICATION_CREDENTIALS` to that local JSON file in your `.env`
+
+Example `.env` entries:
+
+```bash
+OPENAI_API_KEY=your-openai-api-key-here
+GOOGLE_APPLICATION_CREDENTIALS=./secrets/google-service-account.json
+```
 
 ## Running the Application
 
