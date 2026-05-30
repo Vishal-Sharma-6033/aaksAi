@@ -622,6 +622,11 @@
                     Press microphone button or spacebar to start recording
                 </div>
             </div>
+            <!-- Chat input area -->
+            <div class="chat-input-area">
+                <textarea id="chatInput" placeholder="Type a message and press Enter or Send" rows="2"></textarea>
+                <button id="sendButton" class="send-button">Send</button>
+            </div>
         </div>
     </div>
     
@@ -973,6 +978,58 @@
         initializeRecording().then(success => {
             if (!success) {
                 updateStatus('Failed to initialize microphone. Please check permissions.');
+            }
+        });
+
+        // Chat UI elements
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+
+        async function sendChatMessage() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            // Add user message to UI
+            addMessage(text, true);
+            chatInput.value = '';
+
+            // Show a temporary loading message for the assistant
+            const loadingId = `loading-${Date.now()}`;
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message message-ai loading';
+            loadingDiv.id = loadingId;
+            loadingDiv.innerHTML = showLoadingAnimation();
+            chatMessages.appendChild(loadingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            try {
+                // Invoke main process to get chat response
+                const reply = await ipcRenderer.invoke('chat-message', text);
+
+                // Remove loading and add actual reply
+                const el = document.getElementById(loadingId);
+                if (el) el.remove();
+
+                if (reply && reply.trim()) {
+                    addMessage(reply, false);
+                } else {
+                    addMessage('No response from assistant. Please try again.', false);
+                }
+            } catch (err) {
+                const el = document.getElementById(loadingId);
+                if (el) el.remove();
+                addMessage(`Error: ${err.message || err}`, false);
+            }
+        }
+
+        // Send on button click
+        sendButton.addEventListener('click', sendChatMessage);
+
+        // Send on Enter (without Shift)
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendChatMessage();
             }
         });
     </script>

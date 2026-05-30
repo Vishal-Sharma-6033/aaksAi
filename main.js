@@ -415,6 +415,31 @@ ipcMain.on('reset-transcript', () => {
   }
 });
 
+// IPC handler for direct chat messages from the renderer
+ipcMain.handle('chat-message', async (event, userMessage) => {
+  try {
+    if (!userMessage || !userMessage.trim()) return '';
+
+    const systemPrompt = "You are a helpful AI assistant in a meeting. Keep replies concise and actionable.";
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage }
+      ],
+      temperature: 0.3,
+      max_tokens: 250
+    });
+
+    const reply = completion?.choices?.[0]?.message?.content || '';
+    return reply;
+  } catch (err) {
+    console.error('chat-message handler error:', err);
+    throw err;
+  }
+});
+
 // Completely rework the IPC handler for toggling screen sharing mode
 ipcMain.on('toggle-screen-sharing-mode', (event, isScreenSharing) => {
   // Get current window position and size if not in sharing mode already
