@@ -6,6 +6,39 @@ const record = require('node-record-lpcm16')
 const textToSpeech = require('@google-cloud/text-to-speech')
 const OpenAI = require('openai')
 
+function loadLocalEnv() {
+  const envPath = path.join(__dirname, '.env')
+
+  if (!fs.existsSync(envPath)) {
+    return
+  }
+
+  const envContent = fs.readFileSync(envPath, 'utf8')
+  const envLines = envContent.split(/\r?\n/)
+
+  for (const rawLine of envLines) {
+    const line = rawLine.trim()
+
+    if (!line || line.startsWith('#')) {
+      continue
+    }
+
+    const separatorIndex = line.indexOf('=')
+    if (separatorIndex === -1) {
+      continue
+    }
+
+    const key = line.slice(0, separatorIndex).trim()
+    const value = line.slice(separatorIndex + 1).trim().replace(/^['"]|['"]$/g, '')
+
+    if (key && !process.env[key]) {
+      process.env[key] = value
+    }
+  }
+}
+
+loadLocalEnv()
+
 // Global variables
 let mainWindow = null
 let recording = null
@@ -26,8 +59,14 @@ let windowState = {
 let isInScreenSharingMode = false;
 
 // Initialize OpenAI client with simple configuration
+const openAIKey = process.env.OPENAI_API_KEY
+
+if (!openAIKey) {
+  throw new Error('Missing OPENAI_API_KEY environment variable')
+}
+
 const openai = new OpenAI({
-  apiKey: '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', // Replace with your actual key before using
+  apiKey: openAIKey,
   maxRetries: 3, // Add retry logic
   timeout: 60000 // 60 second timeout for the overall client, not per request
 });
@@ -37,11 +76,21 @@ const isWindows = process.platform === 'win32';
 
 // Function to get credentials path that works in both dev and production
 function getCredentialsPath() {
-  if (app.isPackaged) {
-    return path.join(process.resourcesPath, 'lazy-job-seeker-4b29b-eb0b308d0ba7.json')
-  } else {
-    return path.join(__dirname, 'lazy-job-seeker-4b29b-eb0b308d0ba7.json')
+  const envCredentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS
+
+  if (envCredentialsPath) {
+    const resolvedEnvPath = path.resolve(__dirname, envCredentialsPath)
+
+    if (fs.existsSync(resolvedEnvPath)) {
+      return resolvedEnvPath
+    }
+
+    if (fs.existsSync(envCredentialsPath)) {
+      return envCredentialsPath
+    }
   }
+
+  throw new Error('Missing GOOGLE_APPLICATION_CREDENTIALS environment variable or credential file path')
 }
 
 // Initialize Google clients
@@ -95,7 +144,7 @@ function createWindow() {
   } else if (isWindows) {
     // Windows-specific setup
     mainWindow.setSkipTaskbar(false);
-    app.setAppUserModelId('com.lazyjobseeker.angel');
+    app.setAppUserModelId('com.aaksai.app');
   }
   
   // Log when window is created
