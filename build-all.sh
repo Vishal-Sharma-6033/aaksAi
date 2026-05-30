@@ -38,10 +38,10 @@ ls -la dist/
 
 echo "Build completed successfully!"
 echo "You can find the builds in the dist directory:"
-echo "- macOS Apple Silicon: dist/Angel AI Meeting Assistant-1.0.0-arm64-mac.zip"
-echo "- macOS Apple Silicon: dist/Angel AI Meeting Assistant-1.0.0-arm64.dmg"
-echo "- Windows: dist/Angel AI Meeting Assistant Setup 1.0.0.exe"
-echo "- Windows: dist/Angel AI Meeting Assistant-1.0.0-win.zip"
+echo "- macOS Apple Silicon: dist/aaksAi AI Meeting Assistant-1.0.0-arm64-mac.zip"
+echo "- macOS Apple Silicon: dist/aaksAi AI Meeting Assistant-1.0.0-arm64.dmg"
+echo "- Windows: dist/aaksAi AI Meeting Assistant Setup 1.0.0.exe"
+echo "- Windows: dist/aaksAi AI Meeting Assistant-1.0.0-win.zip"
 echo ""
 echo "Note: These builds are not code signed. Users may need to bypass security warnings."
 
