@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, systemPreferences } = require('electron')
+const { app, BrowserWindow, globalShortcut, ipcMain, systemPreferences } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const speech = require('@google-cloud/speech')
@@ -149,6 +149,22 @@ function createWindow() {
   
   // Log when window is created
   console.log('Main window created');
+}
+
+function toggleMainWindowVisibility() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+
+  if (mainWindow.isMinimized() || !mainWindow.isVisible()) {
+    mainWindow.show();
+    mainWindow.restore();
+    mainWindow.focus();
+    mainWindow.moveTop();
+    return;
+  }
+
+  mainWindow.minimize();
 }
 
 function createRecognizeStream() {
@@ -664,7 +680,19 @@ ipcMain.on('audio-data', async (event, base64Audio) => {
   }
 });
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  createWindow();
+
+  const shortcutRegistered = globalShortcut.register('CommandOrControl+X', () => {
+    toggleMainWindowVisibility();
+  });
+
+  if (!shortcutRegistered) {
+    console.error('Failed to register CommandOrControl+X shortcut');
+  } else {
+    console.log('CommandOrControl+X shortcut registered');
+  }
+})
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -676,6 +704,10 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
   }
+})
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
 })
 
 process.on('uncaughtException', (error) => {

@@ -737,8 +737,86 @@
         let isRecording = false;
         let isProcessingToggle = false;
         let mediaRecorder = null;
+        let mediaStream = null;
         let audioChunks = [];
         let messages = [];
+
+        const preferredMimeTypes = [
+            'audio/webm;codecs=opus',
+            'audio/webm',
+            'audio/mp4'
+        ];
+
+        function stopMediaTracks(stream) {
+            if (!stream) return;
+
+            const tracks = stream.getTracks ? stream.getTracks() : [];
+            tracks.forEach((track) => {
+                try {
+                    track.stop();
+                } catch (error) {
+                    console.error('Error stopping media track:', error);
+                }
+            });
+        }
+
+        function cleanupMediaSession() {
+            try {
+                if (mediaRecorder) {
+                    mediaRecorder.ondataavailable = null;
+                    mediaRecorder.onerror = null;
+                    mediaRecorder.onstop = null;
+
+                    if (mediaRecorder.state !== 'inactive') {
+                        try {
+                            mediaRecorder.stop();
+                        } catch (error) {
+                            console.error('Error stopping MediaRecorder during cleanup:', error);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error cleaning up MediaRecorder:', error);
+            }
+
+            stopMediaTracks(mediaStream);
+            mediaStream = null;
+            mediaRecorder = null;
+            audioChunks = [];
+            isRecording = false;
+        }
+
+        function getSupportedMimeType() {
+            if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) {
+                return '';
+            }
+
+            return preferredMimeTypes.find((mimeType) => MediaRecorder.isTypeSupported(mimeType)) || '';
+        }
+
+        function createMediaRecorderForStream(stream) {
+            const supportedMimeType = getSupportedMimeType();
+
+            if (supportedMimeType) {
+                try {
+                    return new MediaRecorder(stream, {
+                        mimeType: supportedMimeType,
+                        audioBitsPerSecond: 128000
+                    });
+                } catch (error) {
+                    console.warn(`Failed to create MediaRecorder with ${supportedMimeType}:`, error);
+                }
+            }
+
+            try {
+                return new MediaRecorder(stream, {
+                    audioBitsPerSecond: 128000
+                });
+            } catch (error) {
+                console.warn('Falling back to default MediaRecorder constructor:', error);
+                return new MediaRecorder(stream);
+            }
+        }
 
         // Make sure appContent is hidden initially
         appContent.classList.add('hidden');
@@ -801,19 +879,24 @@
         // Initialize audio recording
         async function initializeRecording() {
             try {
+                cleanupMediaSession();
+
+                if (typeof MediaRecorder === 'undefined') {
+                    throw new Error('MediaRecorder is not supported in this environment.');
+                }
+
                 const stream = await navigator.mediaDevices.getUserMedia({ 
                     audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        sampleRate: 48000,
-                        channelCount: 1
+                        echoCancellation: { ideal: true },
+                        noiseSuppression: { ideal: true },
+                        autoGainControl: { ideal: true },
+                        channelCount: { ideal: 1 }
                     }
                 });
+
+                mediaStream = stream;
                 
-                mediaRecorder = new MediaRecorder(stream, {
-                    mimeType: 'audio/webm;codecs=opus',
-                    audioBitsPerSecond: 128000
-                });
+                mediaRecorder = createMediaRecorderForStream(stream);
                 
                 mediaRecorder.ondataavailable = (event) => {
                     if (event.data.size > 0) {
@@ -825,6 +908,7 @@
             } catch (error) {
                 console.error('Error initializing recording:', error);
                 addMessage(`Error: ${error.message}`, false);
+                cleanupMediaSession();
                 return false;
             }
         }
@@ -902,14 +986,15 @@
                     // Stop the MediaRecorder
                     try {
                         mediaRecorder.stop();
-                        const tracks = mediaRecorder.stream.getTracks();
-                        tracks.forEach(track => track.stop());
+                        stopMediaTracks(mediaStream);
+                        mediaStream = null;
                     } catch (error) {
                         console.error('Error stopping MediaRecorder:', error);
                     }
                     
                     // Create new MediaRecorder instance for next recording
                     mediaRecorder = null;
+                    audioChunks = [];
                     
                     isRecording = false;
                 }
@@ -928,9 +1013,8 @@
                 updateStatus('Error recording. Please try again.');
                 
                 // Reset state
-                isRecording = false;
+                cleanupMediaSession();
                 isProcessingToggle = false;
-                mediaRecorder = null;
             }
         }
         
