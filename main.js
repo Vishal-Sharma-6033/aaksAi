@@ -71,6 +71,25 @@ const openai = new OpenAI({
   timeout: 60000 // 60 second timeout for the overall client, not per request
 });
 
+function isOpenAIQuotaError(error) {
+  const message = String(error?.message || '').toLowerCase()
+  const code = error?.code
+
+  return code === 429 || message.includes('insufficient_quota') || message.includes('exceeded your current quota')
+}
+
+function formatOpenAIError(error) {
+  if (isOpenAIQuotaError(error)) {
+    return 'OpenAI quota has been exceeded. Please check your API billing and quota settings, then try again.'
+  }
+
+  if (error?.code === 'ECONNRESET' || error?.code === 'ETIMEDOUT') {
+    return 'The connection to the AI service timed out. Please try again.'
+  }
+
+  return `Sorry, I couldn't generate an answer: ${error?.message || 'Unknown error'}`
+}
+
 // Add this near the top with other platform-specific code
 const isWindows = process.platform === 'win32';
 
@@ -337,14 +356,15 @@ async function getOpenAIAnswer(transcript) {
       mainWindow.webContents.send('answer-status', 'Generating answer...');
     }
 
-    // Try with faster model first
+    // Supported OpenAI models (preference order)
     const models = [
-      "gpt-3.5-turbo", // Fall back to more reliable model
-      "gpt-4o-mini"    // Try this first
+      "gpt-4o",        // Primary
+      "gpt-4o-mini",   // Faster alternative
+      "gpt-3.5-turbo"  // Fallback
     ];
-    
+
     let completion = null;
-    let modelIndex = 1; // Start with gpt-4o-mini
+    let modelIndex = 0; // Start with gpt-4o
     let error = null;
     
     while (!completion && modelIndex >= 0) {
@@ -432,14 +452,13 @@ ipcMain.on('reset-transcript', () => {
 });
 
 // IPC handler for direct chat messages from the renderer
-ipcMain.handle('chat-message', async (event, userMessage) => {
+ipcMain.handle('chat-message', async (event, userMessage, modelOverride) => {
   try {
     if (!userMessage || !userMessage.trim()) return '';
 
-    const systemPrompt = "You are a helpful AI assistant in a meeting. Keep replies concise and actionable.";
-
+    const systemPrompt = "You are a helpful AI assistant in a meeting. Keep replies concise and actionable. Use short paragraphs, line breaks, and bullet points when helpful. Do not return everything as one paragraph.";
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: modelOverride || 'gpt-4o',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage }
@@ -452,7 +471,7 @@ ipcMain.handle('chat-message', async (event, userMessage) => {
     return reply;
   } catch (err) {
     console.error('chat-message handler error:', err);
-    throw err;
+    return formatOpenAIError(err)
   }
 });
 

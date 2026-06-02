@@ -311,6 +311,39 @@
             background: #ffffff;
         }
 
+        .model-select {
+            flex: 0 0 120px;
+            height: 42px;
+            min-width: 120px;
+            padding: 0 2rem 0 0.85rem;
+            border-radius: 10px;
+            border: 1px solid #e6edf3;
+            background: #fbfdff;
+            color: #0f172a;
+            font-size: 0.92rem;
+            font-weight: 600;
+            line-height: 1;
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: linear-gradient(45deg, transparent 50%, #64748b 50%), linear-gradient(135deg, #64748b 50%, transparent 50%);
+            background-position: calc(100% - 16px) 18px, calc(100% - 11px) 18px;
+            background-size: 5px 5px, 5px 5px;
+            background-repeat: no-repeat;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .model-select:focus {
+            border-color: #6366f1;
+            box-shadow: 0 6px 18px rgba(99,102,241,0.12);
+        }
+
+        .model-select option {
+            color: #0f172a;
+        }
+
         .chat-input-area textarea {
             flex: 1 1 auto;
             resize: none;
@@ -377,6 +410,8 @@
             color: var(--text);
             border-radius: var(--radius-sm) var(--radius) var(--radius) var(--radius-sm);
             border-left: 4px solid var(--success);
+            white-space: pre-wrap;
+            word-break: break-word;
         }
         
         /* Update live transcript styling for new position */
@@ -711,6 +746,10 @@
             </div>
             <!-- Chat input area -->
             <div class="chat-input-area">
+                <select id="modelSelect" class="model-select" title="Choose OpenAI model">
+                    <option value="gpt-4o">gpt-4o</option>
+                    <option value="gpt-4o-mini" selected>gpt-4o-mini</option>
+                </select>
                 <textarea id="chatInput" placeholder="Type a message and press Enter or Send" rows="2"></textarea>
                 <button id="sendButton" class="send-button">Send</button>
             </div>
@@ -1153,6 +1192,7 @@
         // Chat UI elements
         const chatInput = document.getElementById('chatInput');
         const sendButton = document.getElementById('sendButton');
+        const modelSelect = document.getElementById('modelSelect');
 
         async function sendChatMessage() {
             const text = chatInput.value.trim();
@@ -1177,8 +1217,9 @@
             chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
 
             try {
-                // Invoke main process to get chat response
-                const reply = await ipcRenderer.invoke('chat-message', text);
+                // Invoke main process to get chat response (pass selected model)
+                const selectedModel = modelSelect ? modelSelect.value : null;
+                const reply = await ipcRenderer.invoke('chat-message', text, selectedModel);
 
                 // Remove loading and add actual reply
                 const el = document.getElementById(loadingId);
