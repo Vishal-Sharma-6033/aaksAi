@@ -33,7 +33,18 @@ bin/
 # Logs
 *.log
 
+# Editor and IDE config directories
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
 
+# Secrets directory (from SETUP.md & env example)
+secrets/
 
-# PROJECT_ANALYSIS.md
-PROJECT_ANALYSIS.md
+# Other local credential files
+*credential*.json
+*service-account*.json
